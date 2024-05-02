@@ -40,7 +40,7 @@ export const deleteContact = async (req, res, next) => {
     const result = await removeContact(id);
 
     if (!result) {
-      throw HttpError(404);
+      throw HttpError(404, "Not found");
     }
     res.status(200).json(result);
   } catch (error) {
@@ -50,46 +50,30 @@ export const deleteContact = async (req, res, next) => {
 
 export const createContact = async (req, res, next) => {
   try {
-    const contact = {
-      name: req.body.name,
-      email: req.body.email,
-      phone: req.body.phone,
-    };
-
-    const { error, value } = createContactSchema.validate(contact);
+    const { error, value } = createContactSchema.validate(req.body);
     if (typeof error !== "undefined") {
-      return res.status(400).send({ message: "Validation error" });
+      throw HttpError(400, error.message);
     }
-    const newContact = await addContact(value.name, value.email, value.phone);
+    const newContact = await addContact(req.body);
     res.status(201).json(newContact);
   } catch (error) {
-    console.log(error.status);
-    next(HttpError(error.status, "Internal Server Error"));
+    next(error);
   }
 };
 export const updateContact = async (req, res, next) => {
   try {
-    console.log(req.body.name);
-    if (
-      (req.body.name === undefined) &
-      (req.body.phone === undefined) &
-      (req.body.email === undefined)
-    ) {
-      throw HttpError(400, "Body must have at least one field");
-    }
     const { error } = updateContactSchema.validate(req.body);
     if (error) {
-      throw HttpError(400, "Validation error");
+      throw HttpError(400, error.message);
     }
     const { id } = req.params;
     const upContact = await updatedContact(id, req.body);
-    console.log(updatedContact);
     if (!upContact) {
       throw HttpError(404, "Not found");
     }
     console.log(upContact);
     res.status(200).json(upContact);
   } catch (error) {
-    next(HttpError(error.status, error.message));
+    next(error);
   }
 };
