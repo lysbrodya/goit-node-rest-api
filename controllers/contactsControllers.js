@@ -62,6 +62,10 @@ export const createContact = async (req, res, next) => {
 };
 export const updateContact = async (req, res, next) => {
   try {
+    if (req.body.include === undefined) {
+      throw HttpError(400, "Body must have at least one field");
+    }
+    console.log(req.body.include);
     const { error } = updateContactSchema.validate(req.body);
     if (error) {
       throw HttpError(400, error.message);
@@ -71,7 +75,6 @@ export const updateContact = async (req, res, next) => {
     if (!upContact) {
       throw HttpError(404, "Not found");
     }
-    console.log(upContact);
     res.status(200).json(upContact);
   } catch (error) {
     next(error);
