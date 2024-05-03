@@ -18,6 +18,6 @@ contactsRouter.delete("/:id", deleteContact);
 
 contactsRouter.post("/", jsonParser, createContact);
 
-contactsRouter.put("/:id", updateContact);
+contactsRouter.put("/:id", jsonParser, updateContact);
 
 export default contactsRouter;
