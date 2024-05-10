@@ -49,6 +49,9 @@ async function updateContact(req, res, next) {
   const { name, email, phone, favorite } = req.body;
   const contact = { name, email, phone, favorite };
   try {
+    if (Object.keys(req.body).length === 0) {
+      throw HttpError(400, "Body must have at least one field");
+    }
     const { error } = updateContactSchema.validate(req.body);
     if (typeof error !== "undefined") {
       throw HttpError(400, error.message);
