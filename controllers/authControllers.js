@@ -3,13 +3,18 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 import User from "../models/user.js";
-// import Joi from "joi";
+import { userContactSchema } from "../schemas/contactsSchemas.js";
+import HttpError from "../helpers/HttpError.js";
 
 async function register(req, res, next) {
   // Joi PEREVIRKA
   const { name, email, password } = req.body;
   const emailToLowerCase = email.toLowerCase();
   try {
+    const { error } = userContactSchema.validate(req.body);
+    if (typeof error !== "undefined") {
+      throw HttpError(400, error.message);
+    }
     const myuser = await User.findOne({ email: emailToLowerCase });
     if (myuser !== null) {
       return res.status(409).json({ message: "User already register" });
@@ -28,10 +33,13 @@ async function register(req, res, next) {
 }
 
 async function login(req, res, next) {
-  // Joi PEREVIRKA
   const { email, password } = req.body;
   const emailToLowerCase = email.toLowerCase();
   try {
+    const { error } = userContactSchema.validate(req.body);
+    if (typeof error !== "undefined") {
+      throw HttpError(400, error.message);
+    }
     const user = await User.findOne({ email: emailToLowerCase });
     if (user === null) {
       return res.status(401).json({ message: "Email or password is wrong" });
@@ -42,11 +50,13 @@ async function login(req, res, next) {
       return res.status(401).send({ message: "Email or password is wrong" });
     }
 
-    const token = await jwt.sign(
+    const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
+
+    await User.findByIdAndUpdate(user._id, { token });
 
     res.send({
       token,
@@ -61,7 +71,21 @@ async function login(req, res, next) {
 }
 
 async function logout(req, res, next) {
-  res.json("Logout");
+  try {
+    await User.findByIdAndUpdate(req.user.id, { token: null });
+    return res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
 }
-
-export default { register, login, logout };
+async function current(req, res, next) {
+  try {
+    await User.findOne(req.user);
+    return res
+      .status(200)
+      .json({ email: req.user.email, subscription: req.user.subscription });
+  } catch (error) {
+    next(error);
+  }
+}
+export default { register, login, logout, current };
