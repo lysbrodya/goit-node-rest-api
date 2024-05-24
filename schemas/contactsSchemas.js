@@ -19,6 +19,6 @@ export const updateStatusContactSchema = Joi.object({
 });
 
 export const userContactSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().email().lowercase().required(),
   password: Joi.string().min(4).required(),
 });

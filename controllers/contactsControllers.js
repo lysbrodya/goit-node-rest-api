@@ -18,29 +18,22 @@ async function getAllContacts(req, res, next) {
 
 async function getOneContact(req, res, next) {
   const { id } = req.params;
+
   try {
-    //Добавить джой проверку на обджект айди
-    const contact = await Contact.findById(id);
+    // Найти контакт, принадлежащий текущему пользователю
+    const contact = await Contact.findOne({ _id: id, owner: req.user.id });
+
     if (contact === null) {
-      return res.status(404).send("Contact not found");
+      return res
+        .status(404)
+        .json({ message: "Contact not found or not your contact, ALARMA" });
     }
 
-    if (contact.owner.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Not your contact, ALARMA" });
-    }
-    //////////////
-
-    // const contact = await Contact.findOne({ _id: id, owner: req.user.id });
-    // console.log(contact.owner.toString(), req.user.id);
-    // if (contact === null) {
-    //   return res.status(404).json({ message: "Not your contact, ALARMA" });
-    // }
     res.status(200).json(contact);
   } catch (error) {
     next(error);
   }
 }
-
 async function createContact(req, res, next) {
   const { name, email, phone, favourite } = req.body;
   const contact = { name, email, phone, favourite, owner: req.user.id };
@@ -69,15 +62,21 @@ async function updateContact(req, res, next) {
     if (typeof error !== "undefined") {
       throw HttpError(400, error.message);
     }
+    const existingContact = await Contact.findById(id);
+    if (!existingContact) {
+      throw HttpError(404, "Not found");
+    }
+
+    if (existingContact.owner.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not your contact, ALARMA" });
+    }
     const updatedContact = await Contact.findByIdAndUpdate(id, contact, {
       new: true,
     });
     if (updatedContact === null) {
       throw HttpError(404, "Not found");
     }
-    if (updatedContact.owner.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Not your contact, ALARMA" });
-    }
+
     res.send(updatedContact);
   } catch (error) {
     next(error);
@@ -87,13 +86,19 @@ async function updateContact(req, res, next) {
 async function deleteContact(req, res, next) {
   const { id } = req.params;
   try {
+    const existingContact = await Contact.findById(id);
+    if (!existingContact) {
+      throw HttpError(404, "Not found");
+    }
+
+    if (existingContact.owner.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Not your contact, ALARMA" });
+    }
     const deletedContact = await Contact.findByIdAndDelete(id);
     if (deletedContact === null) {
       throw HttpError(404, "Not found");
     }
-    if (deletedContact.owner.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Not your contact, ALARMA" });
-    }
+
     res.send(deletedContact);
   } catch (error) {
     next(error);

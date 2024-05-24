@@ -7,14 +7,14 @@ import { userContactSchema } from "../schemas/contactsSchemas.js";
 import HttpError from "../helpers/HttpError.js";
 
 async function register(req, res, next) {
-  // Joi PEREVIRKA
   const { name, email, password } = req.body;
-  const emailToLowerCase = email.toLowerCase();
+
   try {
     const { error } = userContactSchema.validate(req.body);
     if (typeof error !== "undefined") {
       throw HttpError(400, error.message);
     }
+    const emailToLowerCase = email.toLowerCase();
     const myuser = await User.findOne({ email: emailToLowerCase });
     if (myuser !== null) {
       return res.status(409).json({ message: "User already register" });
@@ -26,7 +26,10 @@ async function register(req, res, next) {
       email: emailToLowerCase,
       password: passwordHash,
     });
-    res.status(201).json({ message: "Registration successful" });
+    res.status(201).send({
+      email,
+      password,
+    });
   } catch (error) {
     next(error);
   }
@@ -34,12 +37,12 @@ async function register(req, res, next) {
 
 async function login(req, res, next) {
   const { email, password } = req.body;
-  const emailToLowerCase = email.toLowerCase();
   try {
     const { error } = userContactSchema.validate(req.body);
     if (typeof error !== "undefined") {
       throw HttpError(400, error.message);
     }
+    const emailToLowerCase = email.toLowerCase();
     const user = await User.findOne({ email: emailToLowerCase });
     if (user === null) {
       return res.status(401).json({ message: "Email or password is wrong" });
