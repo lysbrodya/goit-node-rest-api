@@ -21,14 +21,16 @@ async function register(req, res, next) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await User.create({
+    const newUser = await User.create({
       name,
       email: emailToLowerCase,
       password: passwordHash,
     });
     res.status(201).send({
-      email,
-      password,
+      user: {
+        email: newUser.email,
+        subscription: newUser.subscription,
+      },
     });
   } catch (error) {
     next(error);
@@ -37,6 +39,7 @@ async function register(req, res, next) {
 
 async function login(req, res, next) {
   const { email, password } = req.body;
+
   try {
     const { error } = userContactSchema.validate(req.body);
     if (typeof error !== "undefined") {
