@@ -17,7 +17,7 @@ async function register(req, res, next) {
     const emailToLowerCase = email.toLowerCase();
     const myuser = await User.findOne({ email: emailToLowerCase });
     if (myuser !== null) {
-      return res.status(409).json({ message: "User already register" });
+      return res.status(409).json({ message: "Email in use" });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
