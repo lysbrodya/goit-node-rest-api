@@ -7,7 +7,6 @@ import {
 } from "../schemas/contactsSchemas.js";
 
 async function getAllContacts(req, res, next) {
-  console.log({ user: req.user });
   try {
     const contacts = await Contact.find({ owner: req.user.id });
     res.status(200).json(contacts);

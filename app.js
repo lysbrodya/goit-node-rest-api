@@ -8,6 +8,8 @@ import cors from "cors";
 
 import routes from "./routes/routes.js";
 
+import path from "node:path";
+
 import "./server.js";
 
 const app = express();
@@ -15,6 +17,7 @@ const app = express();
 app.use(morgan("tiny"));
 app.use(cors());
 app.use(express.json());
+app.use("/avatars", express.static(path.resolve("public/avatars")));
 
 app.use("/api", routes);
 

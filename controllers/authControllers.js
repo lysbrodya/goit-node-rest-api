@@ -1,6 +1,9 @@
 import bcrypt from "bcrypt";
-
+import * as fs from "node:fs/promises";
+import path from "node:path";
 import jwt from "jsonwebtoken";
+import gravatar from "gravatar";
+import Jimp from "jimp";
 
 import User from "../models/user.js";
 import { userContactSchema } from "../schemas/contactsSchemas.js";
@@ -21,10 +24,12 @@ async function register(req, res, next) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const avatarURL = gravatar.url(email);
     const newUser = await User.create({
       name,
       email: emailToLowerCase,
       password: passwordHash,
+      avatarURL,
     });
     res.status(201).send({
       user: {
@@ -94,4 +99,29 @@ async function current(req, res, next) {
     next(error);
   }
 }
-export default { register, login, logout, current };
+
+async function aploadAvatar(req, res, next) {
+  try {
+    const image = await Jimp.read(req.file.path);
+    await image.resize(250, 250).writeAsync(req.file.path);
+    await fs.rename(
+      req.file.path,
+      path.resolve("public/avatars", req.file.filename)
+    );
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { avatarURL: req.file.filename },
+      { new: true }
+    );
+    if (user === null) {
+      return res.status(404).json("not found");
+    }
+    res.json({ avatarURL: user.avatarURL });
+  } catch (error) {
+    console.error("Error:", error);
+    next(error);
+  }
+}
+
+export default { register, login, logout, current, aploadAvatar };

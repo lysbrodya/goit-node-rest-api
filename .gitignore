@@ -4,3 +4,7 @@ exemple/
 .idea
 .vscode
 .DS_Store
+tmp/*
+!tmp/.gitkeep
+public/avatars/*
+!public/avatars/.gitkeep
