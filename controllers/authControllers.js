@@ -102,6 +102,10 @@ async function current(req, res, next) {
 
 async function aploadAvatar(req, res, next) {
   try {
+    if (req.file === undefined) {
+      return res.status(401).json({ message: "Not found file" });
+    }
+
     const image = await Jimp.read(req.file.path);
     await image.resize(250, 250).writeAsync(req.file.path);
     await fs.rename(
@@ -111,7 +115,7 @@ async function aploadAvatar(req, res, next) {
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { avatarURL: req.file.filename },
+      { avatarURL: `/avatars/${req.file.filename}` },
       { new: true }
     );
     if (user === null) {
