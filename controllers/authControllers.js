@@ -14,7 +14,7 @@ import HttpError from "../helpers/HttpError.js";
 const { BASE_URL } = process.env;
 
 async function register(req, res, next) {
-  const { name, email, password } = req.body;
+  const { email, password } = req.body;
 
   try {
     const { error } = userContactSchema.validate(req.body);
@@ -31,7 +31,6 @@ async function register(req, res, next) {
     const avatarURL = gravatar.url(email);
     const verificationToken = nanoid();
     const newUser = await User.create({
-      name,
       email: emailToLowerCase,
       password: passwordHash,
       avatarURL,
@@ -57,17 +56,39 @@ async function register(req, res, next) {
   }
 }
 async function verifyEmail(req, res, next) {
-  console.log(req.params);
   try {
     const { verificationToken } = req.params;
     const user = await User.findOne({ verificationToken });
     if (!user) {
-      throw HttpError(401, "User not found");
+      throw HttpError(404, "User not found");
     }
     await User.findByIdAndUpdate(user._id, {
       verify: true,
       verificationToken: "",
     });
+    res.status(200).json({ message: "Verification successful" });
+  } catch (error) {
+    next(error);
+  }
+}
+async function resendVerifyEmail(req, res, next) {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      throw HttpError(404, "Email not found");
+    }
+    if (user.verify) {
+      throw HttpError(400, "Verification has already been passed");
+    }
+    const verifyMail = {
+      to: email,
+      subject: "Verify email",
+      html: `<a style="color: red" target="_blank" href="${BASE_URL}/api/users/verify/${user.verificationToken}">Click verify email</a>`,
+      text: `To confirm your email please open the link ${BASE_URL}/api/users/verify/${user.verificationToken}`,
+    };
+    await sendEmail(verifyMail);
+
     res.status(200).json({ message: "Verification successful" });
   } catch (error) {
     next(error);
@@ -161,4 +182,12 @@ async function aploadAvatar(req, res, next) {
   }
 }
 
-export default { register, login, logout, current, aploadAvatar, verifyEmail };
+export default {
+  register,
+  login,
+  logout,
+  current,
+  aploadAvatar,
+  verifyEmail,
+  resendVerifyEmail,
+};

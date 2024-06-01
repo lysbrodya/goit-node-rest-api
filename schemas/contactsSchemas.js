@@ -8,7 +8,9 @@ export const createContactSchema = Joi.object({
 });
 
 export const emailSchema = Joi.object({
-  email: Joi.string().email().lowercase().required(),
+  email: Joi.string().email().lowercase().required().messages({
+    "any.required": `missing required field email`,
+  }),
 });
 
 export const updateContactSchema = Joi.object({
