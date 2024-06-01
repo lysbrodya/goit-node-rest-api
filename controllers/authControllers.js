@@ -4,10 +4,14 @@ import path from "node:path";
 import jwt from "jsonwebtoken";
 import gravatar from "gravatar";
 import Jimp from "jimp";
+import { nanoid } from "nanoid";
+import sendEmail from "../helpers/sendemail.js";
 
 import User from "../models/user.js";
 import { userContactSchema } from "../schemas/contactsSchemas.js";
 import HttpError from "../helpers/HttpError.js";
+
+const { BASE_URL } = process.env;
 
 async function register(req, res, next) {
   const { name, email, password } = req.body;
@@ -25,12 +29,23 @@ async function register(req, res, next) {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const avatarURL = gravatar.url(email);
+    const verificationToken = nanoid();
     const newUser = await User.create({
       name,
       email: emailToLowerCase,
       password: passwordHash,
       avatarURL,
+      verificationToken,
     });
+
+    const verifyMail = {
+      to: email,
+      subject: "Verify email",
+      html: `<a style="color: red" target="_blank" href="${BASE_URL}/api/users/verify/${verificationToken}">Click verify email</a>`,
+      text: `To confirm your email please open the link ${BASE_URL}/api/users/verify/${verificationToken}`,
+    };
+
+    await sendEmail(verifyMail);
     res.status(201).send({
       user: {
         email: newUser.email,
@@ -41,7 +56,23 @@ async function register(req, res, next) {
     next(error);
   }
 }
-
+async function verifyEmail(req, res, next) {
+  console.log(req.params);
+  try {
+    const { verificationToken } = req.params;
+    const user = await User.findOne({ verificationToken });
+    if (!user) {
+      throw HttpError(401, "User not found");
+    }
+    await User.findByIdAndUpdate(user._id, {
+      verify: true,
+      verificationToken: "",
+    });
+    res.status(200).json({ message: "Verification successful" });
+  } catch (error) {
+    next(error);
+  }
+}
 async function login(req, res, next) {
   const { email, password } = req.body;
 
@@ -54,6 +85,10 @@ async function login(req, res, next) {
     const user = await User.findOne({ email: emailToLowerCase });
     if (user === null) {
       return res.status(401).json({ message: "Email or password is wrong" });
+    }
+
+    if (!user.verify) {
+      throw HttpError(401, "Please verify your email");
     }
     const isMutch = await bcrypt.compare(password, user.password);
 
@@ -80,7 +115,6 @@ async function login(req, res, next) {
     next(error);
   }
 }
-
 async function logout(req, res, next) {
   try {
     await User.findByIdAndUpdate(req.user.id, { token: null });
@@ -99,7 +133,6 @@ async function current(req, res, next) {
     next(error);
   }
 }
-
 async function aploadAvatar(req, res, next) {
   try {
     if (req.file === undefined) {
@@ -128,4 +161,4 @@ async function aploadAvatar(req, res, next) {
   }
 }
 
-export default { register, login, logout, current, aploadAvatar };
+export default { register, login, logout, current, aploadAvatar, verifyEmail };

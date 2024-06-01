@@ -7,6 +7,10 @@ export const createContactSchema = Joi.object({
   favorite: Joi.boolean(),
 });
 
+export const emailSchema = Joi.object({
+  email: Joi.string().email().lowercase().required(),
+});
+
 export const updateContactSchema = Joi.object({
   name: Joi.string(),
   email: Joi.string(),
